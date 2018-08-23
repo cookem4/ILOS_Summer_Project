@@ -564,28 +564,16 @@ public class WifiInfo extends AppCompatActivity implements SensorEventListener, 
         }
     }
     void newTurn(){
-        //Stores the degree difference between the last step and the turn point
-        //turnDegDiff.add(new LatLng[]{(new LatLng(lat, lon)), currentCheckPoint});
 
         //Emulates a step as right before the turn and stores the time
         long currentTime = SystemClock.elapsedRealtimeNanos()/1000;
-        /*
-        stepHeadings.add(currentHeading);
-        stepCoordsPDR.add(new LatLng(lat, lon));
-        adaptiveTimeList.add(currentTime);
-        */
+
         checkPointTimeStamps.add(currentTime);
         lat = currentCheckPoint.getLatitude();
         displayLat = currentCheckPoint.getLatitude();
         lon = currentCheckPoint.getLongitude();
         dispalyLon = currentCheckPoint.getLongitude();
         currentHeading = mapHeadings.get(mapHeadings.indexOf(currentHeading) + 1);
-        /*
-        //Emulates a step as right after the turn and stores the time
-        stepHeadings.add(currentHeading);
-        stepCoordsPDR.add(new LatLng(lat, lon));
-        adaptiveTimeList.add(currentTime);
-        */
 
 
         currentCheckPoint = mapCheckPoints.get(mapCheckPoints.indexOf(currentCheckPoint)+1);
@@ -647,26 +635,24 @@ public class WifiInfo extends AppCompatActivity implements SensorEventListener, 
                     long checkPointTimeStamp = checkPointTimeStamps.get(mapHeadings.indexOf(headingOnStep)+1);
                     double tempLat;
                     double tempLon;
-                    if(lowerTimeBound < checkPointTimeStamp  && upperTimeBound > checkPointTimeStamp && checkPointTimeStamps.indexOf(checkPointTimeStamp) != checkPointTimeStamps.size()){
-                        //TODO currently removes points here as when a turn occurs, there is uncertainty for wifi signals as phone's orientation changes
-                        //TODO after the turn occurs, it sets the user's position to the turn point, therefore there is less position uncertainty
-                        tempLat = -1;
-                        tempLon = -1;
-                        //tempLat = mapCheckPoints.get(mapHeadings.indexOf(headingOnStep)+1).getLatitude();
-                        //tempLon = mapCheckPoints.get(mapHeadings.indexOf(headingOnStep)+1).getLongitude();
-                        //tempLat = mapCheckPoints.get(mapHeadings.indexOf(headingOnStep)+1).getLatitude() + findDistance( mapCheckPoints.get(mapHeadings.indexOf(headingOnStep)+1), stepCoordsPDR.get(j+1))[0]*((double) (macIDTime - checkPointTimeStamp)) / ((double) (upperTimeBound - checkPointTimeStamp)) * Math.sin(mapHeadings.get(mapHeadings.indexOf(headingOnStep)+1)) * degToMRatio;
-                        //tempLon = mapCheckPoints.get(mapHeadings.indexOf(headingOnStep)+1).getLongitude() + findDistance( mapCheckPoints.get(mapHeadings.indexOf(headingOnStep)+1), stepCoordsPDR.get(j+1))[0]* ((double) (macIDTime - checkPointTimeStamp)) / ((double) (upperTimeBound - checkPointTimeStamp)) * Math.cos(mapHeadings.get(mapHeadings.indexOf(headingOnStep)+1)) * degToMRatio;
+                    //If a step had a turn within it
+                    if(lowerTimeBound < checkPointTimeStamp  && upperTimeBound > checkPointTimeStamp){
+                        //If the current macID time is less than when the checkpoint occurred, calculate based on the checkpoint time as the upper time bound
+                        if(macIDTime < checkPointTimeStamp){
+                            tempLat = prevStep.getLatitude() + findDistance(prevStep, mapCheckPoints.get(checkPointTimeStamps.indexOf(checkPointTimeStamp)))[0]* ((double) (macIDTime - lowerTimeBound)) / ((double) (checkPointTimeStamp - lowerTimeBound))*Math.sin(headingOnStep)*findDistance(prevStep, mapCheckPoints.get(checkPointTimeStamps.indexOf(checkPointTimeStamp)))[1];
+                            tempLon = prevStep.getLatitude() + findDistance(prevStep, mapCheckPoints.get(checkPointTimeStamps.indexOf(checkPointTimeStamp)))[0]* ((double) (macIDTime - lowerTimeBound)) / ((double) (checkPointTimeStamp - lowerTimeBound))*Math.cos(headingOnStep)*findDistance(prevStep, mapCheckPoints.get(checkPointTimeStamps.indexOf(checkPointTimeStamp)))[1];
+                        }
+                        else if(j<stepCoordsPDR.size()){
+                            //If the current macID time is greater than when the checkpoint occurred, calculate based on the checkpoint as lower time bound
+                            tempLat = mapCheckPoints.get(checkPointTimeStamps.indexOf(checkPointTimeStamp)).getLatitude() + findDistance(mapCheckPoints.get(checkPointTimeStamps.indexOf(checkPointTimeStamp)),stepCoordsPDR.get(j+1))[0]* ((double) (macIDTime - checkPointTimeStamp)) / ((double) (upperTimeBound - checkPointTimeStamp))* Math.sin(mapHeadings.get(mapHeadings.indexOf(headingOnStep)+1))* findDistance(mapCheckPoints.get(checkPointTimeStamps.indexOf(checkPointTimeStamp)),stepCoordsPDR.get(j+1))[1];
+                            tempLon = mapCheckPoints.get(checkPointTimeStamps.indexOf(checkPointTimeStamp)).getLongitude() + findDistance(mapCheckPoints.get(checkPointTimeStamps.indexOf(checkPointTimeStamp)),stepCoordsPDR.get(j+1))[0]* ((double) (macIDTime - checkPointTimeStamp)) / ((double) (upperTimeBound - checkPointTimeStamp))* Math.sin(mapHeadings.get(mapHeadings.indexOf(headingOnStep)+1))* findDistance(mapCheckPoints.get(checkPointTimeStamps.indexOf(checkPointTimeStamp)),stepCoordsPDR.get(j+1))[1];
+
+                        }
+                        else{
+                            tempLat =  mapCheckPoints.get(checkPointTimeStamps.indexOf(checkPointTimeStamp)).getLatitude();
+                            tempLon =  mapCheckPoints.get(checkPointTimeStamps.indexOf(checkPointTimeStamp)).getLongitude();
+                        }
                     }
-                    /*
-                    if(upperTimeBound == checkPointTimeStamp && turnDegDiff.size()!=0){ //Occurs when next point is the turn
-                        System.out.println("NUM STEPS " + j);
-                        tempLat = prevStep.getLatitude() + findDistance(turnDegDiff.get(0)[0], turnDegDiff.get(0)[1])[0]* ((double) (macIDTime - lowerTimeBound)) / ((double) (upperTimeBound - lowerTimeBound)) * Math.cos(mapHeadings.get(mapHeadings.indexOf(headingOnStep)+1)) *findDistance(turnDegDiff.get(0)[0], turnDegDiff.get(0)[1])[1];
-                        tempLon = prevStep.getLongitude() + findDistance(turnDegDiff.get(0)[0], turnDegDiff.get(0)[1])[0]* ((double) (macIDTime - lowerTimeBound)) / ((double) (upperTimeBound - lowerTimeBound)) * Math.cos(mapHeadings.get(mapHeadings.indexOf(headingOnStep)+1)) *findDistance(turnDegDiff.get(0)[0], turnDegDiff.get(0)[1])[1];
-                        System.out.println("LAT AND LON " + turnDegDiff.get(0)[0] + "," + turnDegDiff.get(0)[1]);
-                        System.out.println("LAT AND LON" + tempLat + "," + tempLon + ","+ findDistance(turnDegDiff.get(0)[0], turnDegDiff.get(0)[1])[0] + "," + findDistance(turnDegDiff.get(0)[0], turnDegDiff.get(0)[1])[1]);
-                        turnDegDiff.remove(0);
-                    }
-                    */
                     else {
                         tempLat = prevStep.getLatitude() + STEP_LENGTH * ((double) (macIDTime - lowerTimeBound)) / ((double) (upperTimeBound - lowerTimeBound)) * Math.sin(headingOnStep) * findDistance(prevStep, mapCheckPoints.get(mapHeadings.indexOf(headingOnStep)+1))[1];
                         tempLon = prevStep.getLongitude() + STEP_LENGTH * ((double) (macIDTime - lowerTimeBound)) / ((double) (upperTimeBound - lowerTimeBound)) * Math.cos(headingOnStep) * findDistance(prevStep, mapCheckPoints.get(mapHeadings.indexOf(headingOnStep)+1))[1];
@@ -684,7 +670,6 @@ public class WifiInfo extends AppCompatActivity implements SensorEventListener, 
             entries[2] = Double.toString(scanCoordsPDR.get(i).getLatitude());
             entries[3] = Double.toString(scanCoordsPDR.get(i).getLongitude());
             String output = "";
-            if(!entries[2].equals("-1") && !entries[3].equals("-1")) {
                 for (int j = 0; j < entries.length; j++) {
                     if (j == entries.length - 1) {
                         output = output + entries[j];
@@ -694,7 +679,6 @@ public class WifiInfo extends AppCompatActivity implements SensorEventListener, 
                 }
                 //Creates new output list by replacing the latitude and longitude in the original. This list will later be written to storage
                 replacedOutput.add(output);
-            }
         }
         if (doServerUpload) {
             //Re-writes coordinates in outputdata and the list of strings to post
@@ -708,9 +692,6 @@ public class WifiInfo extends AppCompatActivity implements SensorEventListener, 
                 entries[3] = Double.toString(scanCoordsPDR.get(i).getLongitude());
                 String output = "";
                 for (int j = 0; j < entries.length; j++) {
-                    if((j == 2 || j == 3) && entries[j].equals("-1.0")){
-                        add = false;
-                    }
                     if (j != 4 && j != 6) {
                         if (j == entries.length - 1) {
                             output = output + entries[j];
